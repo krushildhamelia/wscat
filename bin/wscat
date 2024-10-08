@@ -10,6 +10,7 @@ const WebSocket = require('ws');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { program } = require('commander');
 const { read } = require('read');
+const { EOL } = require('os');
 
 /**
  * InputReader - processes console input.
@@ -113,6 +114,7 @@ program
   .option('--ca <ca>', 'specify a Certificate Authority (--connect only)')
   .option('--cert <cert>', 'specify a Client SSL Certificate (--connect only)')
   .option('--host <host>', 'optional host')
+  .option('-f, --output <filename>', 'output filepath')
   .option(
     '--key <key>',
     "specify a Client SSL Certificate's key (--connect only)"
@@ -269,6 +271,9 @@ if (programOptions.listen) {
     if (programOptions.proxy)
       options.agent = new HttpsProxyAgent(programOptions.proxy);
     if (programOptions.location) options.followRedirects = true;
+    if (programOptions.output) options.output = fs.createWriteStream(programOptions.output, {
+      flags: 'w'
+    });
 
     options.maxRedirects = programOptions.maxRedirects;
     options.headers = headers;
@@ -297,6 +302,10 @@ if (programOptions.listen) {
         );
 
         wsConsole.on('line', (data) => {
+          if (options.output) {
+            options.output.write(data);
+            options.output.write(EOL);
+          }
           if (programOptions.slash && data[0] === '/') {
             const toks = data.split(/\s+/);
             switch (toks[0].substr(1)) {
